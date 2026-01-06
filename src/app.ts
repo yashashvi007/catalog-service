@@ -1,10 +1,13 @@
 import express, { Request, Response } from "express";
 import { globalErrorHandler } from "./common/middlewares/globalErrorHandler";
 import categoryRouter from "./category/category-router";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
 app.use(express.json());
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+app.use(cookieParser());
 
 app.use("/categories", categoryRouter);
 
