@@ -56,7 +56,7 @@ const categorySchema = new mongoose.Schema({
         type: [attributeSchema],
         required: true,
     },
-});
+}, { timestamps: true });
 
 // Workaround for TS2590: Explicitly type as unknown to prevent complex type inference
 const modelResult: unknown = mongoose.model("Category", categorySchema);
