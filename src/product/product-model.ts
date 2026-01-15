@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { Model, Schema } from "mongoose";
+import { Product } from "./product-types";
 
 const attributeSchema = new mongoose.Schema({
     name: {
@@ -22,7 +23,16 @@ const priceConfigurationSchema = new mongoose.Schema({
     }
 })
 
-const productSchema = new mongoose.Schema({
+// Workaround for TS2590: Helper function to prevent complex type inference
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Schema definition types cause TS2590
+function createSchema(definition: any, options?: mongoose.SchemaOptions): Schema {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/ban-ts-comment -- TS2590 requires bypassing type checking
+    // @ts-ignore TS2590: Complex union type from nested Map schema - type assertion needed
+    const schemaResult: unknown = new mongoose.Schema(definition, options);
+    return schemaResult as Schema;
+}
+
+const productSchema = createSchema({
     name: {
         type: String,
         required: true
@@ -55,5 +65,7 @@ const productSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const ProductModel = mongoose.model("Product", productSchema);
+// Workaround for TS2590: Explicitly type as unknown to prevent complex type inference
+const modelResult: unknown = mongoose.model("Product", productSchema);
+const ProductModel = modelResult as Model<Product>;
 export default ProductModel;
