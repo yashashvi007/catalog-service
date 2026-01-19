@@ -2,8 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { validationResult } from "express-validator";
 import createHttpError from "http-errors";
 import { ProductService } from "./product-service";
-import { Product } from "./product-types";
 import { Logger } from "winston";
+import { Product } from "./product-types";
 
 export class ProductController {
     constructor(private productService: ProductService, private logger: Logger) {
@@ -15,8 +15,28 @@ export class ProductController {
             return next(createHttpError(400, result.array()[0].msg as string));
         }
 
-        const { name, description, image, priceConfiguration, attributes, tenantId, categoryId, isPublished } = req.body as Product;
-        const createdProduct = await this.productService.createProduct({name, description, image, priceConfiguration, attributes, tenantId, categoryId, isPublished});
+        const { name, description, priceConfiguration, attributes, tenantId, categoryId, isPublished } = req.body as Record<string, unknown>;
+      
+        const files = req.files as { image?: { name: string; mv: (path: string) => Promise<void>; data: Buffer } } | undefined;
+        if (!files || !files.image) {
+            return next(createHttpError(400, "Product image is required"));
+        }
+        
+        // For now, use the filename as the image path
+        // In production, you'd want to save the file and use the saved path/URL
+        const imagePath = files.image.name;
+        
+        const product = {
+            name: name as string,
+            description: description as string,
+            image: imagePath,
+            priceConfiguration: JSON.parse(String(priceConfiguration)) as Record<string, { priceType: "base" | "additional"; availableOptions: Record<string, number> }>,
+            attributes: JSON.parse(String(attributes)) as string[],
+            tenantId: tenantId as number,
+            categoryId: categoryId as string,
+            isPublished: isPublished as boolean
+        }
+        const createdProduct = await this.productService.createProduct(product as unknown as Product);
         this.logger.info(`Product created successfully: ${createdProduct._id.toString()}`);
         res.status(201).json({ id: createdProduct._id });
     }
