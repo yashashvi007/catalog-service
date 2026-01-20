@@ -4,10 +4,15 @@ import createHttpError from "http-errors";
 import { ProductService } from "./product-service";
 import { Logger } from "winston";
 import { Product } from "./product-types";
+import { FileStorage } from "../types/storage";
+import { S3Storage } from "../common/services/S3Storage";
+import { v4 as uuidv4 } from "uuid";
+import { UploadedFile } from "express-fileupload";
 
 export class ProductController {
-    constructor(private productService: ProductService, private logger: Logger) {
+    constructor(private productService: ProductService, private logger: Logger, private storage: FileStorage) {
         this.productService = new ProductService();
+        this.storage = new S3Storage();
     }
     async createProduct(req: Request, res: Response, next: NextFunction) {
         const result = validationResult(req);
@@ -17,19 +22,19 @@ export class ProductController {
 
         const { name, description, priceConfiguration, attributes, tenantId, categoryId, isPublished } = req.body as Record<string, unknown>;
       
-        const files = req.files as { image?: { name: string; mv: (path: string) => Promise<void>; data: Buffer } } | undefined;
-        if (!files || !files.image) {
-            return next(createHttpError(400, "Product image is required"));
-        }
+        const image = req.files?.image as UploadedFile;
+        const imageName = uuidv4();
         
-        // For now, use the filename as the image path
-        // In production, you'd want to save the file and use the saved path/URL
-        const imagePath = files.image.name;
+        await this.storage.upload({
+            fileName: imageName,
+            fileData: image.data.buffer as ArrayBuffer
+        })
+
         
         const product = {
             name: name as string,
             description: description as string,
-            image: imagePath,
+            image: imageName,
             priceConfiguration: JSON.parse(String(priceConfiguration)) as Record<string, { priceType: "base" | "additional"; availableOptions: Record<string, number> }>,
             attributes: JSON.parse(String(attributes)) as string[],
             tenantId: tenantId as number,
