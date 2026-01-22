@@ -17,11 +17,6 @@ export default [
       .trim()
       .notEmpty()
       .withMessage("Product description cannot be empty"),
-    body("image")
-      .custom((value, {req})=> {
-        if(!req.files) throw new Error("Product image is required");
-        return true;
-      }),
     body("priceConfiguration")
        .exists()
        .withMessage("Price configuration is required")

@@ -25,11 +25,11 @@ export class S3Storage implements FileStorage {
     
     
     async delete(fileName: string): Promise<void> {
-        const deleteParams = {
-            Bucket: config.get("s3.bucket"),
-            Key: fileName,
-        };
-        await this.client.send(new DeleteObjectCommand(deleteParams as unknown as DeleteObjectCommandInput));
+      const objectParams = {
+        Bucket: config.get("s3.bucket"),
+        Key: fileName
+      }
+      await this.client.send(new DeleteObjectCommand(objectParams as unknown as DeleteObjectCommandInput)); 
     }
 
     getObjectUri(fileName: string): string {
