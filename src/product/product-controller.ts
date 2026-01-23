@@ -3,12 +3,13 @@ import { validationResult } from "express-validator";
 import createHttpError from "http-errors";
 import { ProductService } from "./product-service";
 import { Logger } from "winston";
-import { Product } from "./product-types";
+import { Filter, Product } from "./product-types";
 import { FileStorage } from "../types/storage";
 import { S3Storage } from "../common/services/S3Storage";
 import { v4 as uuidv4 } from "uuid";
 import { UploadedFile } from "express-fileupload";
 import { AuthRequest } from "../types";
+import mongoose from "mongoose";
 
 export class ProductController {
     constructor(private productService: ProductService, private logger: Logger, private storage: FileStorage) {
@@ -48,7 +49,21 @@ export class ProductController {
     }
 
     async getProducts(req: Request, res: Response) {
-        const products = await this.productService.getProducts();
+        const {q, tenantId, categoryId, isPublished}  = req.query;
+        const filters: Filter = {};
+
+        if(isPublished === "true") {
+            filters.isPublished = true;
+        }
+
+        if(tenantId) filters.tenantId = Number(tenantId);
+
+        if(categoryId && mongoose.Types.ObjectId.isValid(categoryId as string) ) filters.categoryId = new mongoose.Types.ObjectId(categoryId as string);
+
+        const products = await this.productService.getProducts(
+            (q as string) || "",
+            filters
+        );
         res.status(200).json(products);
     }
 

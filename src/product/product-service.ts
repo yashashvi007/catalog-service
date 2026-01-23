@@ -1,5 +1,5 @@
 import productModel from "./product-model";
-import { Product } from "./product-types";
+import { Filter, Product } from "./product-types";
 
 export class ProductService {
     async createProduct(product: Product) {
@@ -7,8 +7,24 @@ export class ProductService {
         return newProduct.save();
     }
 
-    async getProducts() {
-        return productModel.find();
+    async getProducts(q: string, filters: Filter): Promise<Product[]> {
+        const matchQuery: Record<string, unknown> = {
+            ...filters
+        };
+        
+        if (q && q.trim() !== "") {
+            const searchQueryRegexp = new RegExp(q, "i");
+            matchQuery.name = searchQueryRegexp;
+        }
+        
+        const aggregate = productModel.aggregate([
+            {
+                $match: matchQuery
+            }
+        ])
+
+        const result = await aggregate.exec();
+        return result as Product[];
     }
 
     async getProduct(productId: string): Promise<Product | null>{
