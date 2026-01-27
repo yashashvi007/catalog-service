@@ -20,6 +20,14 @@ export class ProductService {
         const aggregate = productModel.aggregate([
             {
                 $match: matchQuery
+            },
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "categoryId",
+                    foreignField: "_id",
+                    as: "category"
+                }
             }
         ])
 

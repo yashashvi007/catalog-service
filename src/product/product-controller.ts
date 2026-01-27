@@ -33,6 +33,11 @@ export class ProductController {
         })
 
         
+        // Convert categoryId to ObjectId if it's a valid string
+        const categoryIdObjectId = mongoose.Types.ObjectId.isValid(categoryId as string)
+            ? new mongoose.Types.ObjectId(categoryId as string)
+            : categoryId;
+
         const product = {
             name: name as string,
             description: description as string,
@@ -40,7 +45,7 @@ export class ProductController {
             priceConfiguration: JSON.parse(String(priceConfiguration)) as Record<string, { priceType: "base" | "additional"; availableOptions: Record<string, number> }>,
             attributes: JSON.parse(String(attributes)) as string[],
             tenantId: tenantId as number,
-            categoryId: categoryId as string,
+            categoryId: categoryIdObjectId,
             isPublished: isPublished as boolean
         }
         const createdProduct = await this.productService.createProduct(product as unknown as Product);
@@ -113,13 +118,18 @@ export class ProductController {
             ? JSON.parse(attributes) as string[]
             : attributes as string[];
         
+        // Convert categoryId to ObjectId if it's a valid string
+        const categoryIdObjectId = categoryId && mongoose.Types.ObjectId.isValid(categoryId as string)
+            ? new mongoose.Types.ObjectId(categoryId as string)
+            : categoryId;
+
         const product = {
             name: name as string,
             description: description as string,
             priceConfiguration: parsedPriceConfig,
             attributes: parsedAttributes,
             tenantId: tenantId as number,
-            categoryId: categoryId as string,
+            categoryId: categoryIdObjectId,
             isPublished: isPublished as boolean,
             image: imageName ? imageName : (oldImageName as string),
         } as unknown as Product;
