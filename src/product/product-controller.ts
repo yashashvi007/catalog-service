@@ -74,7 +74,19 @@ export class ProductController {
             filters,
             { page: pageNum, limit: limitNum }
         );
-        res.status(200).json(result);
+
+        const finalProducts = result.data.map((product: Product)=> {
+            return {
+                ...product,
+                image: this.storage.getObjectUri(product.image)
+            }
+        } )
+
+        
+        res.status(200).json({
+            data: finalProducts,
+            pagination: result.pagination
+        });
     }
 
     async updateProduct(req: Request, res: Response, next: NextFunction) {
