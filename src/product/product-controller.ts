@@ -54,7 +54,7 @@ export class ProductController {
     }
 
     async getProducts(req: Request, res: Response) {
-        const {q, tenantId, categoryId, isPublished}  = req.query;
+        const {q, tenantId, categoryId, isPublished, page, limit}  = req.query;
         const filters: Filter = {};
 
         if(isPublished === "true") {
@@ -65,11 +65,16 @@ export class ProductController {
 
         if(categoryId && mongoose.Types.ObjectId.isValid(categoryId as string) ) filters.categoryId = new mongoose.Types.ObjectId(categoryId as string);
 
-        const products = await this.productService.getProducts(
+        // Parse pagination parameters with defaults
+        const pageNum = page ? Math.max(1, parseInt(String(page), 10)) : 1;
+        const limitNum = limit ? Math.max(1, Math.min(100, parseInt(String(limit), 10))) : 10;
+
+        const result = await this.productService.getProducts(
             (q as string) || "",
-            filters
+            filters,
+            { page: pageNum, limit: limitNum }
         );
-        res.status(200).json(products);
+        res.status(200).json(result);
     }
 
     async updateProduct(req: Request, res: Response, next: NextFunction) {

@@ -1,5 +1,5 @@
 import productModel from "./product-model";
-import { Filter, Product } from "./product-types";
+import { Filter, Product, PaginationParams, PaginatedResponse } from "./product-types";
 
 export class ProductService {
     async createProduct(product: Product) {
@@ -7,7 +7,11 @@ export class ProductService {
         return newProduct.save();
     }
 
-    async getProducts(q: string, filters: Filter): Promise<Product[]> {
+    async getProducts(
+        q: string, 
+        filters: Filter, 
+        pagination: PaginationParams
+    ): Promise<PaginatedResponse<Product>> {
         const matchQuery: Record<string, unknown> = {
             ...filters
         };
@@ -17,6 +21,25 @@ export class ProductService {
             matchQuery.name = searchQueryRegexp;
         }
         
+        // Get total count for pagination metadata
+        const countAggregate = productModel.aggregate([
+            {
+                $match: matchQuery
+            },
+            {
+                $count: "total"
+            }
+        ]);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const countResult = await countAggregate.exec();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const total = (countResult[0] as { total?: number })?.total ?? 0;
+
+        // Calculate pagination
+        const skip = (pagination.page - 1) * pagination.limit;
+        const totalPages = Math.ceil(total / pagination.limit);
+
+        // Get paginated results
         const aggregate = productModel.aggregate([
             {
                 $match: matchQuery
@@ -28,11 +51,29 @@ export class ProductService {
                     foreignField: "_id",
                     as: "category"
                 }
+            },
+            {
+                $skip: skip
+            },
+            {
+                $limit: pagination.limit
             }
-        ])
+        ]);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const result = await aggregate.exec();
-        return result as Product[];
+        
+        return {
+            data: result as Product[],
+            pagination: {
+                page: pagination.page,
+                limit: pagination.limit,
+                total,
+                totalPages,
+                hasNextPage: pagination.page < totalPages,
+                hasPrevPage: pagination.page > 1
+            }
+        };
     }
 
     async getProduct(productId: string): Promise<Product | null>{
